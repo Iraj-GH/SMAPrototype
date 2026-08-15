@@ -5,7 +5,7 @@ from kivy.uix.button import Button
 from kivy.clock import Clock 
 from datetime import datetime 
 from kivy.core.window import Window 
-from kivy.graphics import Color, RoundedRectangle
+from kivy.graphics import Color, RoundedRectangle,Ellipse, Rectangle
  
 class MyApp(App): 
     def build(self): 
@@ -34,7 +34,18 @@ class MyApp(App):
         self.Label4 = Label(text='Mark Your Attendance',font_size=30, size_hint=(0.5,0.5), pos_hint={'center_x': 0.895, 'center_y': 0.95})
         self.Label5 = Label(text='Scan Your Code',font_size=15, size_hint=(0.5,0.5), pos_hint={'center_x': 0.845, 'center_y': 0.92})
         self.Label6 = Label(text='To Mark Yourselves as Present',font_size=15, size_hint=(0.5,0.5), pos_hint={'center_x': 0.872, 'center_y': 0.90})
-        Button1 = Button(text='', pos_hint={'center_x': 0.7845, 'center_y': 0.926}, size_hint=(0.055, 0.105), background_color=(177/255, 199/255, 220/255, 0.3))
+        Button1 = Button(text='', pos_hint={'center_x': 0.7845, 'center_y': 0.926}, size_hint=(0.055, 0.105), background_color=(177/255, 199/255, 220/255, 0.9), background_normal="bar-code.png", background_down="bar-code.png")
+        Button2 = Button(text='', pos_hint={'center_x': 0.3033, 'center_y': 0.7245}, size_hint=(0.45, 0.25), background_color=(177/255, 199/255, 220/255, 0.1))
+        Button3 = Button(text='', pos_hint={'center_x': 0.767, 'center_y': 0.7245}, size_hint=(0.45, 0.25), background_color=(177/255, 199/255, 220/255, 0.1))
+        Button4 = Button(text='', pos_hint={'center_x': 0.037, 'center_y': 0.8}, size_hint=(0.055, 0.105), background_color=(177/255, 199/255, 220/255, 0.9), background_normal="Notification.png", background_down="Notification.png")
+        Button5 = Button(text='', pos_hint={'center_x': 0.037, 'center_y': 0.55}, size_hint=(0.055, 0.105), background_color=(177/255, 199/255, 220/255, 0.9), background_normal="home.png", background_down="home.png")
+        Button6 = Button(text='', pos_hint={'center_x': 0.037, 'center_y': 0.44}, size_hint=(0.055, 0.105), background_color=(177/255, 199/255, 220/255, 0.9), background_normal="white-calendar.png", background_down="white-calendar.png")
+        Button7 = Button(text='', pos_hint={'center_x': 0.037, 'center_y': 0.33}, size_hint=(0.055, 0.105), background_color=(177/255, 199/255, 220/255, 0.9), background_normal="people.png", background_down="people.png")
+        Button8 = Button(text='', pos_hint={'center_x': 0.037, 'center_y': 0.22}, size_hint=(0.055, 0.105), background_color=(177/255, 199/255, 220/255, 0.9), background_normal="settings.png", background_down="settings.png")
+        Button9 = Button(text='', pos_hint={'center_x': 0.5325, 'center_y': 0.328}, size_hint=(0.92, 0.5), background_color=(177/255, 199/255, 220/255, 0.1))
+        Button10 = Button(text='', pos_hint={'center_x': 0.113, 'center_y': 0.787}, size_hint=(0.055, 0.105), background_color=(177/255, 199/255, 220/255, 0.9), background_normal="Blue-Person.png", background_down="Blue-Person.png")
+        Button11 = Button(text='', pos_hint={'center_x': 0.573, 'center_y': 0.787}, size_hint=(0.055, 0.105), background_color=(177/255, 199/255, 220/255, 0.9), background_normal="Sub.png", background_down="Sub.png")
+        Button12 = Button(text='', pos_hint={'center_x': 0.113, 'center_y': 0.487}, size_hint=(0.055, 0.105), background_color=(177/255, 199/255, 220/255, 0.9), background_normal="Blue-Calendar.png", background_down="Blue-Calendar.png")
 
         self.update_time() 
         Clock.schedule_interval(self.update_time, 1) 
@@ -45,6 +56,17 @@ class MyApp(App):
         layout.add_widget(self.Label5)
         layout.add_widget(self.Label6)
         layout.add_widget(Button1)
+        layout.add_widget(Button2)
+        layout.add_widget(Button3)
+        layout.add_widget(Button4)
+        layout.add_widget(Button5)
+        layout.add_widget(Button6)
+        layout.add_widget(Button7)
+        layout.add_widget(Button8)
+        layout.add_widget(Button9)
+        layout.add_widget(Button10)
+        layout.add_widget(Button11)
+        layout.add_widget(Button12)
         return layout     
  
     def update_time(self, *args): 
