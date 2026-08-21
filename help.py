@@ -2,6 +2,7 @@ import sys
 import os
 import subprocess
 import webbrowser
+from urllib.parse import quote
 
 from PyQt6.QtWidgets import (
     QApplication,
@@ -12,535 +13,369 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QFrame,
     QMessageBox,
-    QScrollArea,
+    QScrollArea
 )
-from PyQt6.QtGui import QFont
+
+from PyQt6.QtGui import (
+    QFont,
+    QPainter,
+    QPainterPath,
+    QColor,
+    QLinearGradient
+)
+
+from PyQt6.QtCore import Qt
 
 
-# ============================================================
-# HELP WINDOW
-# ============================================================
+class WaveHeader(QFrame):
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setFixedHeight(140)
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        bg_gradient = QLinearGradient(0, 0, self.width(), self.height())
+        bg_gradient.setColorAt(0.0, QColor("#0a192f"))
+        bg_gradient.setColorAt(1.0, QColor("#0e2a47"))
+        painter.fillRect(self.rect(), bg_gradient)
+
+        path1 = QPainterPath()
+        path1.moveTo(0, self.height() * 0.7)
+        path1.cubicTo(
+            self.width() * 0.3, self.height() * 0.4,
+            self.width() * 0.6, self.height() * 0.9,
+            self.width(), self.height() * 0.5
+        )
+        path1.lineTo(self.width(), self.height())
+        path1.lineTo(0, self.height())
+        path1.closeSubpath()
+
+        wave_grad1 = QLinearGradient(0, 0, self.width(), 0)
+        wave_grad1.setColorAt(0.0, QColor(0, 119, 182, 120))
+        wave_grad1.setColorAt(1.0, QColor(72, 202, 228, 80))
+        painter.fillPath(path1, wave_grad1)
+
+        path2 = QPainterPath()
+        path2.moveTo(0, self.height() * 0.85)
+        path2.cubicTo(
+            self.width() * 0.25, self.height() * 0.65,
+            self.width() * 0.7, self.height() * 0.95,
+            self.width(), self.height() * 0.65
+        )
+        path2.lineTo(self.width(), self.height())
+        path2.lineTo(0, self.height())
+        path2.closeSubpath()
+
+        wave_grad2 = QLinearGradient(0, 0, self.width(), 0)
+        wave_grad2.setColorAt(0.0, QColor(0, 180, 216, 160))
+        wave_grad2.setColorAt(1.0, QColor(144, 224, 239, 120))
+        painter.fillPath(path2, wave_grad2)
+
 
 class HelpWindow(QWidget):
 
-    def __init__(self):
+    def __init__(self, previous_window=None):
         super().__init__()
+        self.previous_window = previous_window
+        self.returning_to_dashboard = False
         self.init_ui()
 
-    # ========================================================
-    # OPEN EMAIL
-    # ========================================================
+    def go_back(self):
+        self.returning_to_dashboard = True
 
-    def open_email(self, email):
-
-        try:
-            webbrowser.open(
-                f"mailto:{email}"
-            )
-
-        except Exception as e:
-
-            QMessageBox.warning(
-                self,
-                "Unable to Open Email",
-                f"Could not open your email application.\n\n{e}"
-            )
-
-    # ========================================================
-    # OPEN ADMINPAGE.PY
-    # ========================================================
-
-    def open_adminpage(self):
-
-        try:
-
-            # Get the folder where help.py is located
-            base_dir = os.path.dirname(
-                os.path.abspath(__file__)
-            )
-
-            # Find adminpage.py in the same folder
-            adminpage_path = os.path.join(
-                base_dir,
-                "adminpage.py"
-            )
-
-            # Check whether adminpage.py exists
-            if not os.path.isfile(adminpage_path):
-
-                QMessageBox.warning(
-                    self,
-                    "File Not Found",
-                    "adminpage.py was not found.\n\n"
-                    "Make sure adminpage.py is in the same folder "
-                    "as help.py."
-                )
-
-                return
-
-            # Open adminpage.py using the same Python interpreter
-            subprocess.Popen(
-                [
-                    sys.executable,
-                    adminpage_path
-                ],
-                cwd=base_dir
-            )
-
-            # Close help.py
+        if self.previous_window is not None:
+            self.previous_window.show()
+            self.previous_window.raise_()
+            self.previous_window.activateWindow()
+            self.close()
+        else:
             self.close()
 
+    def closeEvent(self, event):
+        if self.returning_to_dashboard:
+            event.accept()
+            return
+
+        if self.previous_window is not None:
+            self.previous_window.show()
+            self.previous_window.raise_()
+            self.previous_window.activateWindow()
+
+        event.accept()
+
+    def open_email(self, email):
+        try:
+            if not webbrowser.open(f"mailto:{email}"):
+                gmail_url = (
+                    f"https://mail.google.com/mail/?view=cm&fs=1&tf=1"
+                    f"&to={quote(email)}"
+                )
+                webbrowser.open_new(gmail_url)
+
         except Exception as e:
-
-            QMessageBox.critical(
+            QMessageBox.warning(
                 self,
-                "Error",
-                f"Could not open adminpage.py.\n\n{e}"
+                "Unable to Open Email Client",
+                f"Could not open an email application.\n\nError: {e}"
             )
-
-    # ========================================================
-    # CREATE EMAIL CARD
-    # ========================================================
 
     def create_email_card(self, name, email):
-
         card = QFrame()
 
-        card.setStyleSheet(
-            """
+        card.setStyleSheet("""
             QFrame {
-                background-color: #243547;
-                border: 1px solid #32475e;
+                background: #ffffff;
+                border: 1px solid #e0e8f0;
                 border-radius: 10px;
             }
-            """
-        )
+        """)
 
         layout = QHBoxLayout(card)
+        layout.setContentsMargins(16, 10, 16, 10)
 
-        layout.setContentsMargins(
-            18,
-            12,
-            18,
-            12
-        )
-
-        # Email icon
         icon = QLabel("✉")
-
-        icon.setFont(
-            QFont(
-                "Segoe UI",
-                18
-            )
-        )
-
+        icon.setFont(QFont("Segoe UI", 16))
         icon.setStyleSheet(
-            """
-            color: #3498db;
-            border: none;
-            """
+            "color: #0077b6; border: none;"
         )
+        icon.setFixedWidth(30)
 
-        icon.setFixedWidth(
-            35
-        )
+        layout.addWidget(icon)
 
-        layout.addWidget(
-            icon
-        )
-
-        # Name and email
         text_layout = QVBoxLayout()
 
-        name_label = QLabel(
-            name
-        )
-
+        name_label = QLabel(name)
         name_label.setFont(
-            QFont(
-                "Segoe UI",
-                11,
-                QFont.Weight.Bold
-            )
+            QFont("Segoe UI", 10, QFont.Weight.Bold)
         )
-
         name_label.setStyleSheet(
-            """
-            color: #ffffff;
-            border: none;
-            """
+            "color: #0f172a; border: none;"
         )
 
-        email_label = QLabel(
-            email
-        )
-
+        email_label = QLabel(email)
         email_label.setFont(
-            QFont(
-                "Segoe UI",
-                10
-            )
+            QFont("Segoe UI", 9)
         )
-
         email_label.setStyleSheet(
-            """
-            color: #8c9fae;
-            border: none;
-            """
+            "color: #64748b; border: none;"
         )
 
-        text_layout.addWidget(
-            name_label
-        )
+        text_layout.addWidget(name_label)
+        text_layout.addWidget(email_label)
 
-        text_layout.addWidget(
-            email_label
-        )
-
-        layout.addLayout(
-            text_layout
-        )
-
+        layout.addLayout(text_layout)
         layout.addStretch()
 
-        # Contact button
-        contact_button = QPushButton(
-            "Contact"
+        contact_btn = QPushButton("Contact")
+        contact_btn.setFixedSize(85, 32)
+        contact_btn.setCursor(
+            Qt.CursorShape.PointingHandCursor
         )
 
-        contact_button.setFixedSize(
-            90,
-            36
-        )
-
-        contact_button.setStyleSheet(
-            """
+        contact_btn.setStyleSheet("""
             QPushButton {
-                background-color: #007acc;
-                color: white;
+                background: #0077b6;
+                color: #ffffff;
                 border: none;
                 border-radius: 6px;
                 font-weight: bold;
             }
 
             QPushButton:hover {
-                background-color: #0062a3;
+                background: #0096c7;
             }
 
             QPushButton:pressed {
-                background-color: #00558f;
+                background: #03045e;
             }
-            """
+        """)
+
+        contact_btn.clicked.connect(
+            lambda checked=False, addr=email:
+            self.open_email(addr)
         )
 
-        contact_button.clicked.connect(
-            lambda checked=False, address=email:
-            self.open_email(address)
-        )
-
-        layout.addWidget(
-            contact_button
-        )
+        layout.addWidget(contact_btn)
 
         return card
-
-    # ========================================================
-    # CREATE FAQ CARD
-    # ========================================================
 
     def create_faq(self, question, answer):
-
         card = QFrame()
 
-        card.setStyleSheet(
-            """
+        card.setStyleSheet("""
             QFrame {
-                background-color: #1e2d3b;
-                border: 1px solid #2c4053;
+                background: #ffffff;
+                border: 1px solid #e0e8f0;
                 border-radius: 8px;
             }
-            """
-        )
+        """)
 
         layout = QVBoxLayout(card)
+        layout.setContentsMargins(14, 10, 14, 10)
 
-        layout.setContentsMargins(
-            15,
-            12,
-            15,
-            12
-        )
-
-        question_label = QLabel(
-            question
-        )
-
+        question_label = QLabel(question)
         question_label.setFont(
-            QFont(
-                "Segoe UI",
-                10,
-                QFont.Weight.Bold
-            )
+            QFont("Segoe UI", 10, QFont.Weight.Bold)
         )
-
         question_label.setStyleSheet(
-            """
-            color: #ffffff;
-            border: none;
-            """
+            "color: #0f172a; border: none;"
         )
 
-        answer_label = QLabel(
-            answer
-        )
-
-        answer_label.setWordWrap(
-            True
-        )
-
+        answer_label = QLabel(answer)
+        answer_label.setWordWrap(True)
         answer_label.setFont(
-            QFont(
-                "Segoe UI",
-                9
-            )
+            QFont("Segoe UI", 9)
         )
-
         answer_label.setStyleSheet(
-            """
-            color: #8c9fae;
-            border: none;
-            """
+            "color: #475569; border: none;"
         )
 
-        layout.addWidget(
-            question_label
-        )
-
-        layout.addWidget(
-            answer_label
-        )
+        layout.addWidget(question_label)
+        layout.addWidget(answer_label)
 
         return card
 
-    # ========================================================
-    # BUILD UI
-    # ========================================================
-
     def init_ui(self):
+        self.setWindowTitle("Help & Support")
+        self.resize(850, 650)
 
-        self.setWindowTitle(
-            "Help & Support"
-        )
-
-        self.resize(
-            900,
-            700
-        )
-
-        self.setStyleSheet(
-            """
+        self.setStyleSheet("""
             QWidget {
-                background-color: #1a2936;
-                color: #ffffff;
+                background-color: #f8fafc;
+                color: #0f172a;
                 font-family: 'Segoe UI';
             }
 
             QScrollBar:vertical {
-                background: #15222e;
+                background: #f1f5f9;
                 width: 8px;
                 border-radius: 4px;
             }
 
             QScrollBar::handle:vertical {
-                background: #32475e;
+                background: #cbd5e1;
                 border-radius: 4px;
             }
 
             QScrollBar::handle:vertical:hover {
-                background: #3d5870;
+                background: #94a3b8;
             }
-            """
-        )
+        """)
 
-        # ====================================================
-        # ROOT LAYOUT
-        # ====================================================
-
-        root_layout = QVBoxLayout(
-            self
-        )
-
-        root_layout.setContentsMargins(
-            0,
-            0,
-            0,
-            0
-        )
-
-        # ====================================================
-        # SCROLL AREA
-        # ====================================================
+        root_layout = QVBoxLayout(self)
+        root_layout.setContentsMargins(0, 0, 0, 0)
 
         scroll_area = QScrollArea()
-
-        scroll_area.setWidgetResizable(
-            True
-        )
-
+        scroll_area.setWidgetResizable(True)
         scroll_area.setStyleSheet(
-            """
-            QScrollArea {
-                border: none;
-            }
-            """
+            "QScrollArea { border: none; }"
         )
 
         scroll_content = QWidget()
 
-        main_layout = QVBoxLayout(
-            scroll_content
-        )
+        main_layout = QVBoxLayout(scroll_content)
+        main_layout.setContentsMargins(0, 0, 0, 20)
+        main_layout.setSpacing(14)
 
-        main_layout.setContentsMargins(
-            35,
-            25,
-            35,
-            25
-        )
+        header = WaveHeader()
 
-        main_layout.setSpacing(
-            18
-        )
-
-        # ====================================================
-        # HEADER
-        # ====================================================
-
-        header = QFrame()
-
-        header.setStyleSheet(
-            """
-            QFrame {
-                background-color: #15222e;
-                border-radius: 12px;
-                border: 1px solid #243547;
-            }
-            """
-        )
-
-        header_layout = QVBoxLayout(
-            header
-        )
-
+        header_layout = QHBoxLayout(header)
         header_layout.setContentsMargins(
-            25,
-            20,
-            25,
-            20
+            30, 15, 30, 35
         )
 
-        title = QLabel(
-            "Help & Support"
-        )
+        title_layout = QVBoxLayout()
 
+        title = QLabel("Help & Support")
         title.setFont(
-            QFont(
-                "Segoe UI",
-                25,
-                QFont.Weight.Bold
-            )
+            QFont("Segoe UI", 22, QFont.Weight.Bold)
         )
-
-        title.setStyleSheet(
-            """
+        title.setStyleSheet("""
             color: #ffffff;
             border: none;
-            """
-        )
+            background: transparent;
+        """)
 
         subtitle = QLabel(
-            "Need help with the Classroom Management System?"
+            "Classroom Management System"
         )
-
         subtitle.setFont(
-            QFont(
-                "Segoe UI",
-                11
-            )
+            QFont("Segoe UI", 10)
         )
-
-        subtitle.setStyleSheet(
-            """
-            color: #8c9fae;
+        subtitle.setStyleSheet("""
+            color: #90e0ef;
             border: none;
-            """
+            background: transparent;
+        """)
+
+        title_layout.addWidget(title)
+        title_layout.addWidget(subtitle)
+
+        header_layout.addLayout(title_layout)
+        header_layout.addStretch()
+
+        sos_badge = QFrame()
+        sos_badge.setFixedSize(65, 65)
+
+        sos_badge.setStyleSheet("""
+            QFrame {
+                background: #ffffff;
+                border-radius: 32px;
+                border: 2px solid #90e0ef;
+            }
+        """)
+
+        sos_layout = QVBoxLayout(sos_badge)
+        sos_layout.setContentsMargins(
+            0, 0, 0, 0
         )
 
-        header_layout.addWidget(
-            title
+        sos_label = QLabel("SOS")
+        sos_label.setAlignment(
+            Qt.AlignmentFlag.AlignCenter
+        )
+        sos_label.setFont(
+            QFont("Segoe UI", 13, QFont.Weight.Bold)
+        )
+        sos_label.setStyleSheet("""
+            color: #d97706;
+            border: none;
+            background: transparent;
+        """)
+
+        sos_layout.addWidget(sos_label)
+
+        header_layout.addWidget(sos_badge)
+
+        main_layout.addWidget(header)
+
+        content_wrapper = QWidget()
+
+        content_layout = QVBoxLayout(
+            content_wrapper
         )
 
-        header_layout.addWidget(
-            subtitle
+        content_layout.setContentsMargins(
+            30, 0, 30, 0
         )
-
-        main_layout.addWidget(
-            header
-        )
-
-        # ====================================================
-        # CONTACT SECTION
-        # ====================================================
+        content_layout.setSpacing(12)
 
         support_title = QLabel(
             "Contact & Support"
         )
-
         support_title.setFont(
-            QFont(
-                "Segoe UI",
-                15,
-                QFont.Weight.Bold
-            )
+            QFont("Segoe UI", 13, QFont.Weight.Bold)
         )
-
         support_title.setStyleSheet(
-            "color: #ffffff;"
+            "color: #0f172a;"
         )
 
-        main_layout.addWidget(
+        content_layout.addWidget(
             support_title
         )
-
-        support_text = QLabel(
-            "For technical problems, account issues, attendance problems, "
-            "or general questions about the application, contact one of "
-            "the support members below."
-        )
-
-        support_text.setWordWrap(
-            True
-        )
-
-        support_text.setFont(
-            QFont(
-                "Segoe UI",
-                10
-            )
-        )
-
-        support_text.setStyleSheet(
-            "color: #8c9fae;"
-        )
-
-        main_layout.addWidget(
-            support_text
-        )
-
-        # ====================================================
-        # SUPPORT EMAILS
-        # ====================================================
 
         emails = [
             (
@@ -549,136 +384,103 @@ class HelpWindow(QWidget):
             ),
             (
                 "Support Team",
+                "pandeyaayush978@gmail.com"
+            ),
+            (
+                "Support Team",
                 "hellopratik2021@gmail.com"
             ),
             (
                 "Support Team",
                 "kaflealdrin@gmail.com"
-            ),
-            (
-                "Support Team",
-                "pandeyaayush978@gmail.com"
-            ),
+            )
         ]
 
         for name, email in emails:
-
-            main_layout.addWidget(
+            content_layout.addWidget(
                 self.create_email_card(
                     name,
                     email
                 )
             )
 
-        # ====================================================
-        # QUICK HELP
-        # ====================================================
-
-        faq_title = QLabel(
-            "Quick Help"
-        )
-
+        faq_title = QLabel("Quick Help")
         faq_title.setFont(
-            QFont(
-                "Segoe UI",
-                15,
-                QFont.Weight.Bold
-            )
+            QFont("Segoe UI", 13, QFont.Weight.Bold)
         )
-
         faq_title.setStyleSheet(
-            "color: #ffffff;"
+            "color: #0f172a; margin-top: 10px;"
         )
 
-        main_layout.addWidget(
+        content_layout.addWidget(
             faq_title
         )
 
         faqs = [
             (
                 "Attendance is not being marked.",
-                "Make sure the barcode/QR scanner is connected and that "
-                "the attendance system is running properly."
+                "Make sure the barcode/QR scanner is connected and system active."
             ),
             (
                 "The application is not opening.",
-                "Restart the application and make sure all required Python "
-                "files are located in the correct project folder."
+                "Restart application and verify Python files are in the correct path."
             ),
             (
                 "I need further assistance.",
-                "Use the Contact buttons above to send an email directly "
-                "to the support team."
+                "Use the Contact buttons above to reach the support team directly."
             )
         ]
 
         for question, answer in faqs:
-
-            main_layout.addWidget(
+            content_layout.addWidget(
                 self.create_faq(
                     question,
                     answer
                 )
             )
 
-        # ====================================================
-        # BACK BUTTON
-        # ====================================================
-
         footer = QHBoxLayout()
-
         footer.addStretch()
 
-        back_button = QPushButton(
+        back_btn = QPushButton(
             "← Back to Dashboard"
         )
 
-        back_button.setFixedSize(
-            180,
-            42
+        back_btn.setFixedSize(170, 38)
+
+        back_btn.setCursor(
+            Qt.CursorShape.PointingHandCursor
         )
 
-        back_button.setStyleSheet(
-            """
+        back_btn.setStyleSheet("""
             QPushButton {
-                background-color: #243547;
-                color: #ffffff;
-                border: 1px solid #32475e;
-                border-radius: 7px;
+                background: #ffffff;
+                color: #0077b6;
+                border: 1px solid #0077b6;
+                border-radius: 6px;
                 font-weight: bold;
             }
 
             QPushButton:hover {
-                background-color: #2d4358;
-                border-color: #3498db;
+                background: #e0f2fe;
             }
 
             QPushButton:pressed {
-                background-color: #1d2d3c;
+                background: #bae6fd;
             }
-            """
+        """)
+
+        back_btn.clicked.connect(
+            self.go_back
         )
 
-        # ====================================================
-        # IMPORTANT:
-        # BACK BUTTON OPENS ADMINPAGE.PY
-        # ====================================================
+        footer.addWidget(back_btn)
 
-        back_button.clicked.connect(
-            self.open_adminpage
+        content_layout.addLayout(footer)
+
+        main_layout.addWidget(
+            content_wrapper
         )
-
-        footer.addWidget(
-            back_button
-        )
-
-        main_layout.addLayout(
-            footer
-        )
-
-        # ====================================================
-        # ADD CONTENT TO SCROLL AREA
-        # ====================================================
 
         scroll_area.setWidget(
             scroll_content
@@ -689,20 +491,10 @@ class HelpWindow(QWidget):
         )
 
 
-# ============================================================
-# START APPLICATION
-# ============================================================
-
 if __name__ == "__main__":
-
-    app = QApplication(
-        sys.argv
-    )
+    app = QApplication(sys.argv)
 
     window = HelpWindow()
-
     window.show()
 
-    sys.exit(
-        app.exec()
-    )
+    sys.exit(app.exec())
